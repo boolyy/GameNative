@@ -85,6 +85,12 @@ if [ $# -eq 0 ]; then
   exit 2
 fi
 
+# The secrets-gradle plugin aborts configuration when local.properties is missing (upstream CI
+# writes one with its API keys). The fork builds with every key empty; see FORK.md.
+if [ ! -f "$repo/local.properties" ]; then
+  printf 'POSTHOG_API_KEY=\nPOSTHOG_HOST=https://us.i.posthog.com\nSTEAMGRIDDB_API_KEY=\nCLOUD_PROJECT_NUMBER=\n' > "$repo/local.properties"
+fi
+
 start=$(date +%s)
 docker "${args[@]}" "$image" ./gradlew --no-daemon --max-workers="$workers" \
   -Pkotlin.daemon.jvmargs=-Xmx3g "$@"

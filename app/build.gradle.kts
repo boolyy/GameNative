@@ -20,6 +20,15 @@ val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
     }
 } else null
 
+// GameNative Perf (see FORK.md): the `perf` build type signs with a key kept outside the repo.
+// PERF_KEYSTORE_PROPS names a properties file (storeFile, storePassword, keyAlias, keyPassword);
+// storeFile is resolved relative to that file.
+val perfKeystorePropsFile: File? = System.getenv("PERF_KEYSTORE_PROPS")?.let { File(it) }?.takeIf { it.exists() }
+val perfKeystoreProperties: Properties? = perfKeystorePropsFile?.let { f ->
+    Properties().apply { FileInputStream(f).use { load(it) } }
+}
+val perfBuildNumber: Int = (project.findProperty("PERF_BUILD_NUMBER") as String? ?: System.getenv("PERF_BUILD_NUMBER") ?: "1").toInt()
+
 // Add PostHog API key and host as build-time variables
 val posthogApiKey: String = project.findProperty("POSTHOG_API_KEY") as String? ?: System.getenv("POSTHOG_API_KEY") ?: ""
 val posthogHost: String = project.findProperty("POSTHOG_HOST") as String? ?: System.getenv("POSTHOG_HOST") ?: "https://us.i.posthog.com"
@@ -53,6 +62,14 @@ android {
                 keyPassword = keystoreProperties["keyPassword"].toString()
             }
         }
+        create("perf") {
+            if (perfKeystoreProperties != null && perfKeystorePropsFile != null) {
+                storeFile = File(perfKeystorePropsFile.parentFile, perfKeystoreProperties["storeFile"].toString())
+                storePassword = perfKeystoreProperties["storePassword"].toString()
+                keyAlias = perfKeystoreProperties["keyAlias"].toString()
+                keyPassword = perfKeystoreProperties["keyPassword"].toString()
+            }
+        }
     }
 
     defaultConfig {
@@ -68,6 +85,7 @@ android {
         versionName = "1.3.0"
 
         buildConfigField("boolean", "GOLD", "false")
+        buildConfigField("boolean", "PERF_FORK", "false")
         fun secret(name: String) =
             project.findProperty(name) as String? ?: System.getenv(name) ?: ""
 
@@ -192,6 +210,16 @@ android {
                     "roundIcon" to iconRoundValue,
                 ),
             )
+        }
+        // GameNative Perf (see FORK.md): side-by-side package app.gamenative.perf, own signing key,
+        // uploads to GameNative's servers off (BuildConfig.PERF_FORK), FrameBoost on by default.
+        create("perf") {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("perf")
+            applicationIdSuffix = ".perf"
+            buildConfigField("boolean", "PERF_FORK", "true")
+            matchingFallbacks += listOf("release")
         }
     }
 
@@ -513,4 +541,17 @@ dependencies {
 
     "modernXrImplementation"("com.meta.horizon.platform.sdk:core-kotlin:0.2.2")
     "modernXrImplementation"("com.meta.horizon.platform.sdk:iap-kotlin:0.2.2")
+}
+
+// GameNative Perf (see FORK.md): versionName "<upstream>-perf.<N>", versionCode upstream*100+N,
+// so every fork build of one upstream release sorts above it and below the next one.
+androidComponents {
+    onVariants(selector().withBuildType("perf")) { variant ->
+        val baseName = android.defaultConfig.versionName ?: "0"
+        val baseCode = android.defaultConfig.versionCode ?: 0
+        variant.outputs.forEach { output ->
+            output.versionName.set("$baseName-perf.$perfBuildNumber")
+            output.versionCode.set(baseCode * 100 + perfBuildNumber)
+        }
+    }
 }

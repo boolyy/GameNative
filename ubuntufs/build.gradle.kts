@@ -34,6 +34,9 @@ android {
         create("release-gold") {
             initWith(getByName("release"))
         }
+        create("perf") {
+            initWith(getByName("release"))
+        }
     }
 
     compileOptions {
