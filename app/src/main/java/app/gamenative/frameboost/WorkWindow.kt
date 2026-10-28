@@ -46,12 +46,13 @@ object WorkWindow {
         var workSum = 0L
         var waitSum = 0L
         var prev = prevTimeNs
+        var havePrev = prevTimeNs != 0L
         val missThreshold = if (targetNs > 0L) (targetNs * MISS_FACTOR).toLong() else Long.MAX_VALUE
         var first = -1L
         var last = -1L
         for (i in 0 until count) {
             val t = timesNs[i]
-            if (prev != 0L) {
+            if (havePrev) {
                 val interval = t - prev
                 if (interval in 1..MAX_INTERVAL_NS) {
                     val work = (interval - waitsNs[i]).coerceAtLeast(0L)
@@ -66,6 +67,7 @@ object WorkWindow {
                 }
             }
             prev = t
+            havePrev = true
         }
         if (n == 0) return WorkStats.EMPTY
         java.util.Arrays.sort(workScratch, 0, n)

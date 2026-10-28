@@ -65,6 +65,7 @@ class ThreadSet(private val scanner: ProcScanner, private val exeName: String) {
         private set
     private var lastTicks: Map<Int, Long> = emptyMap()
     private var lastSampleNs = 0L
+    private var hasSample = false
 
     /** Looks the processes up. True when the game process was found. */
     fun locate(): Boolean {
@@ -72,6 +73,7 @@ class ThreadSet(private val scanner: ProcScanner, private val exeName: String) {
         wineserverPid = scanner.findPidByArg0Suffix("wineserver")
         lastTicks = emptyMap()
         lastSampleNs = 0L
+        hasSample = false
         return gamePid != null
     }
 
@@ -89,9 +91,11 @@ class ThreadSet(private val scanner: ProcScanner, private val exeName: String) {
         }
         val prevTicks = lastTicks
         val prevNs = lastSampleNs
+        val first = !hasSample
         lastTicks = ticks
         lastSampleNs = nowNs
-        val tids = if (prevNs == 0L) {
+        hasSample = true
+        val tids = if (first) {
             intArrayOf(pid)
         } else {
             val elapsed = (nowNs - prevNs) / 1e9
