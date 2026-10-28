@@ -1,0 +1,12 @@
+[Unit]
+Description=GameNative Perf: rebase, build and release on new upstream stable tags
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/code/gamenative-perf
+ExecStart=%h/code/gamenative-perf/tools/perf-build/sync.sh
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=4h
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin

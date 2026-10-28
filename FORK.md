@@ -81,8 +81,10 @@ Signing certificate SHA-256 (not secret; use it to verify downloads with
 `apksigner verify --print-certs`):
 
 ```
-(filled in once the key is generated; see the status log in PLAN.md)
+67:80:B1:AB:07:80:F6:AB:91:0F:A1:ED:FF:48:BA:A4:23:CC:25:1C:67:79:BC:34:7D:A2:37:11:36:7B:3D:80
 ```
+
+(RSA 4096, alias `gamenative-perf`, valid until 2056-10-20, generated 2026-10-28.)
 
 Losing the key means the fork can no longer be updated in place; the keystore and its
 passwords live only on the maintainer's build host and in its backup.
@@ -95,9 +97,22 @@ Kept deliberately small so the patch rebases cleanly. Full list maintained here.
 
 Upstream hardcodes its own data directory in a few places. With package `app.gamenative.perf`
 the data directory is `/data/data/app.gamenative.perf`, so these were changed to derive the path
-from the running package:
+from the running package (`app/src/main/java/app/gamenative/fork/AppData.java`,
+`BuildConfig.APPLICATION_ID`):
 
-(filled in during Phase 2)
+| File | What |
+|---|---|
+| `com/winlator/container/Container.java` | the six `MEDIACONV_*` env var paths; the `E:` drive in `DEFAULT_DRIVES` |
+| `com/winlator/core/WineUtils.java` | the `E:` drive added to old containers; the "is this the storage drive" suffix check |
+| `com/winlator/xenvironment/components/BionicProgramLauncherComponent.java` | the evshim gamepad `.mem` paths; sets `EVSHIM_BASE_PATH` so `libevshim.so` never uses its compiled-in `/data/data/app.gamenative/files` fallback |
+| `com/winlator/core/DXVKHelper.java` | `DXVK_STATE_CACHE_PATH` |
+| `app/gamenative/utils/PerfSampler.kt` | the storage-drive suffix check |
+| `app/gamenative/ui/screen/xserver/XServerScreen.kt` | `AppData.fixVulkanIcdPaths` before `VK_ICD_FILENAMES` is set: Turnip archives ship `freedreno_icd.aarch64.json` with an absolute `library_path` under the upstream package, and drivers downloaded from GameNative's content server may too |
+
+Checked and left alone: `libkgslshim.so` looks for `app.gamenative` in `/proc/self/maps` to find its
+own library path, and `app.gamenative.perf` contains that substring. The bundled asset archives
+(40 of them, extracted and scanned) contain no other package paths. `${applicationId}.fileprovider`
+was already parameterized.
 
 Not changed on purpose:
 
@@ -116,9 +131,34 @@ the same reason; that is accepted.
 
 ### FrameBoost
 
-New package `app.gamenative.frameboost` plus these hooks into upstream code:
+New package `app.gamenative.frameboost`:
 
-(filled in during Phase 3)
+| File | Role |
+|---|---|
+| `FrameBoost.kt` | facade and lifecycle; one worker thread, 250 ms ticks, 2 s windows, 5 s thread rescans |
+| `FrameClock.kt` | lock-free ring of presented frames and the limiter wait before each |
+| `WorkWindow.kt` | per-window statistics: fps, p50/p90 work time, misses, injected wait |
+| `ProcStat.kt`, `ThreadSet.kt` | `/proc` parsing; finds the game and wineserver, picks the main thread plus the busiest threads (> 30 % of a core, at most 4) |
+| `BackendSelector.kt` | setting × `GN_FRAMEBOOST` override × capabilities → backend |
+| `AdpfBackend.kt` | `PerformanceHintManager` session; reports work (interval − injected wait) batched to the preferred update rate; recreates the session when threads change on API < 34 |
+| `RootPinBackend.kt`, `ClockCapController.kt` | PServer root path: prime core online, main thread pinned there, wineserver off the efficiency cluster, closed loop on the prime cluster's max clock |
+| `FrameBoostLog.kt` | logcat tag `FrameBoost` + JSONL per session |
+
+Hooks into upstream files (each marked `GameNative Perf (FORK.md)` in the code):
+
+| File | Hook |
+|---|---|
+| `com/winlator/widget/FrameRating.java` | `FrameBoost.onFrame(System.nanoTime())` on every presented frame |
+| `com/winlator/xserver/ShmFramePacer.java` | `FrameBoost.onInjectedWait(delay)` when the SHM limiter suspends a client |
+| `com/winlator/xserver/extensions/PresentExtension.java` | per-window last-present / last-release times; the wait a paced client spent between its previous present and the pacer's release is reported as injected wait |
+| `app/gamenative/ui/screen/xserver/XServerScreen.kt` | `FrameBoost.start(context, container)` next to `PowerManager.autoStart`; `FrameBoost.onLimiterChanged(limit)` where the limiter is applied to the engines |
+| `app/gamenative/PluviaApp.kt` | `FrameBoost.stop()` before `PowerManager.stop()` in `shutdownEnvironment` |
+| `app/gamenative/powercontrol/PowerManager.kt` | `pserverDriver()` accessor so the root backend reuses the one `PServerDriver` (baseline, babysitter, crash recovery) |
+| `app/gamenative/PrefManager.kt` | `frameBoostMode` preference (default `auto` in the fork) |
+| `app/gamenative/ui/screen/settings/SettingsGroupPerformance.kt` | the FrameBoost dropdown |
+
+Strings are in `res/values/strings_frameboost.xml`, a new file. Unit tests:
+`app/src/test/java/app/gamenative/frameboost/`.
 
 Settings → Performance → **FrameBoost**: Off / Auto / Hint API only / Root only (default Auto).
 Per game, the container environment variable `GN_FRAMEBOOST=off|auto|adpf|root` overrides it.
