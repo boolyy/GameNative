@@ -738,6 +738,9 @@ object PowerManager {
 
     fun driverName(): String = driver::class.java.simpleName
 
+    /** GameNative Perf (FORK.md): the PServer driver instance, so FrameBoost reuses its root path. */
+    fun pserverDriver(): PServerDriver? = if (::driver.isInitialized) driver as? PServerDriver else null
+
     /**
      * Get display unit preference for frequency values
      */

@@ -303,6 +303,7 @@ class PluviaApp : SplitCompatApplication() {
                 .onFailure { Timber.e(it, "shutdownEnvironment: stopEnvironmentComponents") }
 
             // Stop performance driver
+            app.gamenative.frameboost.FrameBoost.stop() // GameNative Perf (FORK.md): before the driver restores its baseline
             PowerManager.stop()
 
             xEnvironment = null

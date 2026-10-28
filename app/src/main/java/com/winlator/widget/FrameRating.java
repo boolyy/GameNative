@@ -69,6 +69,7 @@ public class FrameRating extends FrameLayout implements Runnable {
 
     public void update(long time) {
         FrameTimeRing.record();
+        app.gamenative.frameboost.FrameBoost.onFrame(System.nanoTime()); // GameNative Perf (FORK.md)
         if (lastTime == 0) lastTime = time;
         if (sessionStartTime == 0) sessionStartTime = time;
         try {

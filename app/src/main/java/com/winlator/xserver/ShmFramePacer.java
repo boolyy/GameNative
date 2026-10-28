@@ -29,6 +29,7 @@ public class ShmFramePacer {
         if (t.nextNs < now) t.nextNs = now;
         long delay = t.nextNs - now;
         t.nextNs += 1_000_000_000L / fps;
+        app.gamenative.frameboost.FrameBoost.onInjectedWait(delay); // GameNative Perf (FORK.md)
         return delay;
     }
 

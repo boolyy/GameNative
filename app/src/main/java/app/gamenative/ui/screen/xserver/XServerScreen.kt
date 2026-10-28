@@ -111,6 +111,7 @@ import app.gamenative.externaldisplay.ExternalDisplayInputController
 import app.gamenative.externaldisplay.ExternalDisplaySwapController
 import app.gamenative.externaldisplay.SwapInputOverlayView
 import app.gamenative.fork.AppData
+import app.gamenative.frameboost.FrameBoost
 import app.gamenative.powercontrol.PowerManager
 import app.gamenative.service.AchievementWatcher
 import app.gamenative.service.SteamService
@@ -797,6 +798,7 @@ fun XServerScreen(
         // otherwise run uncapped whenever LSFG is armed.
         ShmFramePacer.setFrameRateLimit(limit)
         PowerManager.targetFps = limit
+        FrameBoost.onLimiterChanged(limit) // GameNative Perf (FORK.md)
         // keeps frame stats in base units while generated frames tick the ring
         PowerManager.frameSampleStride =
             if (isLsfgAvailable && lsfgMultiplier >= 2) lsfgMultiplier else 1
@@ -2490,6 +2492,7 @@ fun XServerScreen(
 
                             // Autostart performance driver after environment is set up
                             PowerManager.autoStart(container.rootDir)
+                            FrameBoost.start(context, container) // GameNative Perf (FORK.md)
 
                             if (debugRun) {
                                 PerfSampler.start(

@@ -122,6 +122,7 @@ public class PresentExtension implements Extension {
                 long now = System.nanoTime();
                 if (now >= p.targetNs) {
                     if (cpuQueue.remove(p)) {
+                        markReleased(p.window.id); // GameNative Perf (FORK.md)
                         sendIdleNotify(p.window, p.pixmap, p.serial, p.idleFence);
                     }
                 } else {
@@ -150,6 +151,7 @@ public class PresentExtension implements Extension {
                     p.vsyncSkips--;
                     anyRemaining = true;
                 } else if (pendingIdles.remove(p.window.id, p)) {
+                    markReleased(p.window.id); // GameNative Perf (FORK.md)
                     sendIdleNotify(p.window, p.pixmap, p.serial, p.idleFence);
                 }
             } else {
@@ -159,13 +161,19 @@ public class PresentExtension implements Extension {
         if (anyRemaining) postChoreographerCallback();
     };
 
+    // GameNative Perf (FORK.md)
+    private void markReleased(int windowId) {
+        WindowTiming wt = windowTimings.get(windowId);
+        if (wt != null) wt.lastReleaseNs = System.nanoTime();
+    }
+
     private void postChoreographerCallback() {
         if (choreographer == null || choreographerPosted) return;
         choreographerPosted = true;
         choreographer.postFrameCallback(vsyncCallback);
     }
 
-    private static class WindowTiming { long nextIdleNs = 0; }
+    private static class WindowTiming { long nextIdleNs = 0; long lastPresentNs = 0; long lastReleaseNs = 0; }
     private final java.util.concurrent.ConcurrentHashMap<Integer, WindowTiming> windowTimings =
             new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -180,6 +188,11 @@ public class PresentExtension implements Extension {
         long now = System.nanoTime();
 
         WindowTiming wt = windowTimings.computeIfAbsent(window.id, k -> new WindowTiming());
+        // GameNative Perf (FORK.md): a paced client presents right after the pacer releases its
+        // pixmap, so the time from its previous present to that release is the limiter's wait.
+        if (wt.lastPresentNs != 0 && wt.lastReleaseNs > wt.lastPresentNs && wt.lastReleaseNs <= now)
+            app.gamenative.frameboost.FrameBoost.onInjectedWait(wt.lastReleaseNs - wt.lastPresentNs);
+        wt.lastPresentNs = now;
         if (wt.nextIdleNs <= now - frameNs) {
             wt.nextIdleNs = now + frameNs;
         } else {

@@ -9,6 +9,7 @@
 #   --from-tag TAG    treat TAG as the last built release instead of state/last-tag
 #   --dry-run         rebase + build + test + verify, but do not push, tag, release or update state
 #   --no-publish      everything except the GitHub release (push and tag still happen)
+#   --branch-prefix P branch name prefix instead of "perf/" (scratch branches for tests)
 #
 # Exit codes: 0 nothing to do or success; 2 rebase conflict (alert sent); 3 build/test/verify
 # failed (alert sent); 4 publish failed (alert sent).
@@ -27,13 +28,14 @@ fork_repo="${GAMENATIVE_PERF_FORK:-boolyy/GameNative}"
 ntfy_url="${NTFY_URL:-http://127.0.0.1:2586/tower-alerts}"
 keep_builds=3
 
-force_tag="" from_tag="" dry_run=0 publish=1
+force_tag="" from_tag="" dry_run=0 publish=1 prefix="perf/"
 while [ $# -gt 0 ]; do
   case "$1" in
     --force-tag) force_tag="$2"; shift 2 ;;
     --from-tag) from_tag="$2"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
     --no-publish) publish=0; shift ;;
+    --branch-prefix) prefix="$2"; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -71,8 +73,8 @@ fi
 git fetch --quiet upstream --tags
 git fetch --quiet origin
 git rev-parse -q --verify "refs/tags/$new_tag" >/dev/null || { log "tag $new_tag not found after fetch"; exit 2; }
-old_branch="perf/$old_tag"
-new_branch="perf/$new_tag"
+old_branch="$prefix$old_tag"
+new_branch="$prefix$new_tag"
 git rev-parse -q --verify "refs/heads/$old_branch" >/dev/null || git branch "$old_branch" "origin/$old_branch"
 if git rev-parse -q --verify "refs/heads/$new_branch" >/dev/null; then
   log "branch $new_branch already exists; building it as is"
@@ -85,7 +87,7 @@ else
     git branch -D "$new_branch" >/dev/null 2>&1 || true
     log "rebase conflict; see $logs/rebase-$new_tag.log"
     notify 4 "GameNative $new_tag: perf patch needs a manual rebase" \
-      "git rebase --onto $new_tag $old_tag perf/$old_tag conflicted. Log: $logs/rebase-$new_tag.log. Nothing was pushed."
+      "git rebase --onto $new_tag $old_tag $old_branch conflicted. Log: $logs/rebase-$new_tag.log. Nothing was pushed."
     exit 2
   fi
 fi

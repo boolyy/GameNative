@@ -1906,4 +1906,10 @@ object PrefManager {
     var powerControlDefaultEnabled: Boolean
         get() = getPref(POWER_CONTROL_DEFAULT_ENABLED, DeviceGate.isDeviceSupported())
         set(value) { setPref(POWER_CONTROL_DEFAULT_ENABLED, value) }
+
+    // GameNative Perf (FORK.md): Settings → Performance → FrameBoost (off/auto/adpf/root)
+    private val FRAME_BOOST_MODE = stringPreferencesKey("frame_boost_mode")
+    var frameBoostMode: String
+        get() = getPref(FRAME_BOOST_MODE, if (BuildConfig.PERF_FORK) "auto" else "off")
+        set(value) { setPref(FRAME_BOOST_MODE, value) }
 }

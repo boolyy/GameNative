@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GameNative Perf (see FORK.md): FrameBoost settings. Kept in its own file so upstream's
+     strings.xml is untouched. -->
+<resources>
+    <string name="settings_performance_frameboost_title">FrameBoost</string>
+    <string name="settings_performance_frameboost_subtitle">Reports each frame\'s CPU work to Android so CPU-bound games get the fast core only when they need it. Auto uses the hint API, or root (PServer) on devices without hint support. Per game: Environment variable GN_FRAMEBOOST=off|auto|adpf|root. Never runs while Power Control is on for the game.</string>
+    <string name="frameboost_mode_off">Off</string>
+    <string name="frameboost_mode_auto">Auto</string>
+    <string name="frameboost_mode_adpf">Hint API only</string>
+    <string name="frameboost_mode_root">Root only</string>
+</resources>
