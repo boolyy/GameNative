@@ -86,9 +86,10 @@ if [ $# -eq 0 ]; then
 fi
 
 # The secrets-gradle plugin aborts configuration when local.properties is missing (upstream CI
-# writes one with its API keys). The fork builds with every key empty; see FORK.md.
+# writes one with its API keys), and emits invalid Java for keys with empty values. The fork
+# builds with no keys at all: app/build.gradle.kts falls back to "" for each one. See FORK.md.
 if [ ! -f "$repo/local.properties" ]; then
-  printf 'POSTHOG_API_KEY=\nPOSTHOG_HOST=https://us.i.posthog.com\nSTEAMGRIDDB_API_KEY=\nCLOUD_PROJECT_NUMBER=\n' > "$repo/local.properties"
+  printf '# GameNative Perf: no API keys (POSTHOG_API_KEY, STEAMGRIDDB_API_KEY, CLOUD_PROJECT_NUMBER); see FORK.md\n' > "$repo/local.properties"
 fi
 
 start=$(date +%s)
