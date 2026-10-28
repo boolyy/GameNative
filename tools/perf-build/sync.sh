@@ -98,6 +98,7 @@ n=1
 while gh release view "$new_tag-perf.$n" --repo "$fork_repo" >/dev/null 2>&1; do n=$((n + 1)); done
 version="$new_tag-perf.$n"
 out="$out_root/$version"
+[ "$dry_run" = 1 ] && out="$out_root/dry-run/$version"   # never clobber a real build
 build_log="$logs/build-$version.log"
 
 # 3. Build and test.
@@ -126,7 +127,7 @@ fi
 final_apk="$out/gamenative-perf-$version.apk"
 mv -f "$apk" "$final_apk"
 (cd "$out" && sha256sum *.apk > SHA256SUMS)
-ls -1dt "$out_root"/*/ | tail -n +$((keep_builds + 1)) | xargs -r rm -rf
+ls -1dt "$out_root"/v*/ 2>/dev/null | tail -n +$((keep_builds + 1)) | xargs -r rm -rf
 
 if [ "$dry_run" = 1 ]; then
   log "dry run: built and verified $version in $out; not pushing"
