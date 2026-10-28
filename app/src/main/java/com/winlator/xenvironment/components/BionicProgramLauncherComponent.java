@@ -18,6 +18,7 @@ import androidx.annotation.NonNull;
 import com.winlator.PrefManager;
 
 import app.gamenative.utils.LsfgVkManager;
+import app.gamenative.fork.AppData;
 import com.winlator.box86_64.Box86_64Preset;
 import com.winlator.box86_64.Box86_64PresetManager;
 import com.winlator.container.Container;
@@ -211,10 +212,10 @@ public class BionicProgramLauncherComponent extends GuestProgramLauncherComponen
             String memPath;
             if (i == 0) {
                 // Player 1 uses the original, non-numbered path that is known to work.
-                memPath = "/data/data/app.gamenative/files/imagefs/tmp/gamepad.mem";
+                memPath = AppData.IMAGEFS_DIR + "/tmp/gamepad.mem";
             } else {
                 // Players 2, 3, 4 use a 1-based index.
-                memPath = "/data/data/app.gamenative/files/imagefs/tmp/gamepad" + i + ".mem";
+                memPath = AppData.IMAGEFS_DIR + "/tmp/gamepad" + i + ".mem";
             }
 
             File memFile = new File(memPath);
@@ -346,6 +347,8 @@ public class BionicProgramLauncherComponent extends GuestProgramLauncherComponen
         envVars.put("LD_PRELOAD", ld_preload);
         envVars.put("EVSHIM_WINE", 1);
         envVars.put("EVSHIM_SHM_NAME", "controller-shm0");
+        // libevshim.so falls back to /data/data/app.gamenative/files when this is unset (FORK.md)
+        envVars.put("EVSHIM_BASE_PATH", AppData.FILES_DIR);
 
         if (container != null && container.isFasterExternalLoading()) {
             String ffpGameDir = null;

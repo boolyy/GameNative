@@ -1,6 +1,7 @@
 package app.gamenative.api
 
 import app.gamenative.utils.DebugReportUtils
+import app.gamenative.fork.ForkGuards
 import app.gamenative.utils.PlayIntegrity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,9 @@ object DebugReportApi {
         perfFile: File? = null,
         logcatFile: File? = null,
     ): SubmitResult = withContext(Dispatchers.IO) {
+        if (ForkGuards.uploadsDisabled("debug-report")) {
+            return@withContext SubmitResult.Failure("Debug reports are off in GameNative Perf")
+        }
         try {
             val headerString = header.toString()
             val bodyBuilder = MultipartBody.Builder()

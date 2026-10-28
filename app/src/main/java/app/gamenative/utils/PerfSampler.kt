@@ -14,6 +14,7 @@ import android.system.OsConstants
 import android.view.Display
 import androidx.annotation.RequiresApi
 import app.gamenative.powercontrol.PowerManager
+import app.gamenative.fork.AppData
 import app.gamenative.powercontrol.metrics.FrameTimeRing
 import app.gamenative.powercontrol.metrics.GpuUsageSampler
 import app.gamenative.powercontrol.metrics.SystemMetricsSources
@@ -1072,7 +1073,7 @@ object PerfSampler {
             return (
                 entries.firstOrNull { it.first == "A" }
                     ?: entries.firstOrNull { (_, path) ->
-                        !path.endsWith("/Download") && !path.endsWith("app.gamenative/storage")
+                        !path.endsWith("/Download") && !path.endsWith(AppData.STORAGE_SUFFIX)
                     }
                 )?.second
         }

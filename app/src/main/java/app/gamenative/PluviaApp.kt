@@ -12,6 +12,7 @@ import androidx.navigation.NavController
 import app.gamenative.db.dao.AmazonGameDao
 import app.gamenative.db.dao.GOGGameDao
 import app.gamenative.events.EventDispatcher
+import app.gamenative.fork.ForkGuards
 import app.gamenative.mods.NexusAuthManager
 import app.gamenative.powercontrol.PowerManager
 import app.gamenative.service.ActiveGameRegistry
@@ -157,7 +158,9 @@ class PluviaApp : SplitCompatApplication() {
                 properties.filterKeys { it.startsWith("$") }.toMutableMap().apply { put("url", trimmed) }
             }
         }
-        PostHogAndroid.setup(this, postHogConfig)
+        if (!ForkGuards.uploadsDisabled("posthog")) {
+            PostHogAndroid.setup(this, postHogConfig)
+        }
         com.posthog.PostHog.register("build_flavor", BuildConfig.FLAVOR)
         DeviceInfo.registerSuperProperties(this)
         Thread({ DeviceInfo.registerGpuSuperProperties(applicationContext) }, "device-info").apply { isDaemon = true }.start()

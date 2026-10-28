@@ -110,6 +110,7 @@ import java.util.EnumSet
 import app.gamenative.externaldisplay.ExternalDisplayInputController
 import app.gamenative.externaldisplay.ExternalDisplaySwapController
 import app.gamenative.externaldisplay.SwapInputOverlayView
+import app.gamenative.fork.AppData
 import app.gamenative.powercontrol.PowerManager
 import app.gamenative.service.AchievementWatcher
 import app.gamenative.service.SteamService
@@ -6439,6 +6440,7 @@ private suspend fun extractGraphicsDriverFiles(
             envVars.put("MESA_VK_WSI_DEBUG", "sw")
         }
 
+        AppData.fixVulkanIcdPaths(File(imageFs.getShareDir(), "vulkan/icd.d")) // side-by-side package (FORK.md)
         if (currentWrapperVersion.lowercase(Locale.getDefault())
                 .contains("turnip") && isAdrenotoolsTurnip == "0"
         ) envVars.put("VK_ICD_FILENAMES", imageFs.getShareDir().path + "/vulkan/icd.d/freedreno_icd.aarch64.json")

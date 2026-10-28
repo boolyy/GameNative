@@ -1,5 +1,6 @@
 package app.gamenative.api
 
+import app.gamenative.fork.ForkGuards
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -24,6 +25,9 @@ object GameRunApi {
         avgFps: Float?,
         sessionLengthSec: Int?,
     ): ApiResult<GameRunResponse> = withContext(Dispatchers.IO) {
+        if (ForkGuards.uploadsDisabled("game-run")) {
+            return@withContext ApiResult.HttpError(0, "Compatibility reports are off in GameNative Perf")
+        }
         val body = JSONObject().apply {
             put("gameName", gameName)
             put("deviceModel", deviceModel)
